@@ -26,14 +26,23 @@ def part_2(puzzle_input):
     grid = np.zeros((300, 300))
     for i, _ in np.ndenumerate(grid):
         grid[i] = total_power(i[0] + 1, i[1] + 1, puzzle_input)
-    totals = []
-    for size in range(1, 299):
-        cells = np.zeros((300 - size - 1, 300 - size - 1))
-        for i, _ in np.ndenumerate(cells):
-            cells[i] = np.sum(grid[i[0]:i[0]+size,i[1]:i[1]+size])
-        x, y = np.array(np.unravel_index(np.argmax(cells), cells.shape)) + 1
-        totals.append((x,y,size,np.max(cells)))
-    print(sorted(totals, key = lambda x : x[3])[-1])
+    grid_integral = np.zeros_like(grid)
+    for i, _ in np.ndenumerate(grid):
+        grid_integral[i] = np.sum(grid[:i[0] + 1,:i[1] + 1])
+    def total(upper_left, size):
+        x, y = upper_left
+        return (grid_integral[(x, y)] + grid_integral[(x + size, y + size)]
+                - grid_integral[(x, y + size)] - grid_integral[(x + size, y)])
+    t = 0
+    best = None
+    for x in range(300):
+        for y in range(300):
+            for size in range(300 - max(x, y)):
+                tn = total((x, y), size) 
+                if tn > t:
+                    t = tn
+                    best = (x+2, y+2, size)
+    print(best)
 
 if __name__ == '__main__':
     puzzle_input = 9221
