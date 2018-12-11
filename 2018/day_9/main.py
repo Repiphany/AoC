@@ -3,7 +3,7 @@
 import re
 import collections
 
-def part_1(N, M):
+def highest_scorer(N, M):
     marble_circle = collections.deque([0])
     scores = collections.defaultdict(int)
     for i in range(1, M + 1):
@@ -18,4 +18,9 @@ def part_1(N, M):
 if __name__ == '__main__':
     with open('input', 'r') as f:
         N, M = [int(i) for i in re.findall(r'\d+', f.read())]
-    part_1(N, M)
+
+    # part 1
+    highest_scorer(N, M)
+
+    # part 2
+    highest_scorer(N, M*100)
