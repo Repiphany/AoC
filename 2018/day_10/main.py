@@ -22,6 +22,7 @@ def part_1(positions, velocities):
             else:
                 sys.stdout.write('.')
         sys.stdout.write('\n')
+    print(int(res.x))
 
 if __name__ == '__main__':
     positions, velocities = [], []
