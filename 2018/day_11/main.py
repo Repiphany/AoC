@@ -19,8 +19,8 @@ def part_1(puzzle_input):
     cells = np.zeros((298, 298))
     for i, _ in np.ndenumerate(cells):
         cells[i] = np.sum(grid[i[0]:i[0]+3,i[1]:i[1]+3])
-    print(np.array(np.unravel_index(np.argmax(cells), cells.shape)) + 1)
-    print(np.max(cells))
+    print('{},{}'.format(*(np.array(np.unravel_index(np.argmax(cells),
+        cells.shape)) + 1)))
 
 def part_2(puzzle_input):
     grid = np.zeros((300, 300))
@@ -42,7 +42,7 @@ def part_2(puzzle_input):
                 if tn > t:
                     t = tn
                     best = (x+2, y+2, size)
-    print(best)
+    print('{},{},{}'.format(*best))
 
 if __name__ == '__main__':
     puzzle_input = 9221
