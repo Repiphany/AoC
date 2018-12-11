@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import collections
 import numpy as np
+import time
 
 def total_power(x, y, puzzle_input):
     rack_id = x + 10
@@ -12,39 +12,47 @@ def total_power(x, y, puzzle_input):
     power_level -= 5
     return power_level
 
-def part_1(puzzle_input):
-    grid = np.zeros((300, 300))
-    for i, _ in np.ndenumerate(grid):
-        grid[i] = total_power(i[0] + 1, i[1] + 1, puzzle_input)
-    cells = np.zeros((298, 298))
-    for i, _ in np.ndenumerate(cells):
-        cells[i] = np.sum(grid[i[0]:i[0]+3,i[1]:i[1]+3])
-    print('{},{}'.format(*(np.array(np.unravel_index(np.argmax(cells),
-        cells.shape)) + 1)))
+def grid_integral(g):
+    """Returns an array g_I such that g_i([y+1, x+1]) = np.sum(g[:y, :x])"""
+    g_I = np.zeros(tuple(x + 1 for x in g.shape), dtype = g.dtype)
+    for (y, x), v in np.ndenumerate(np.cumsum(g, axis = 1)):
+        g_I[(y+1, x+1)] = v + g_I[(y, x+1)]
+    return g_I
 
-def part_2(puzzle_input):
-    grid = np.zeros((300, 300))
+def main(puzzle_input, N = 300):
+    grid = np.zeros((N, N), dtype = int)
     for i, _ in np.ndenumerate(grid):
         grid[i] = total_power(i[0] + 1, i[1] + 1, puzzle_input)
-    grid_integral = np.zeros_like(grid)
-    for i, _ in np.ndenumerate(grid):
-        grid_integral[i] = np.sum(grid[:i[0] + 1,:i[1] + 1])
-    def total(upper_left, size):
-        x, y = upper_left
-        return (grid_integral[(x, y)] + grid_integral[(x + size, y + size)]
-                - grid_integral[(x, y + size)] - grid_integral[(x + size, y)])
-    t = 0
-    best = None
-    for x in range(300):
-        for y in range(300):
-            for size in range(300 - max(x, y)):
-                tn = total((x, y), size) 
-                if tn > t:
-                    t = tn
-                    best = (x+2, y+2, size)
-    print('{},{},{}'.format(*best))
+    g_I = grid_integral(grid)
+    def total(upper_left, size, g_I = g_I):
+        # returns the sum of elements in the window
+        # upper_left -> upper left + size
+        y, x = upper_left
+        return (g_I[(y, x)] + g_I[(y + size, x + size)]
+                - g_I[(y, x + size)] - g_I[(y + size, x)])
+
+    # only check window size up to specified max
+    windowed_sums = {}
+    window_max = 20
+    for size in range(1, window_max + 1):
+        width = N - size + 1
+        g_s = np.zeros((width, width), dtype = int)
+        windowed_sums[size] = g_s
+        for i, _ in np.ndenumerate(g_s):
+            g_s[i] = total(i, size)
+
+    def ndim_argmax(g, offset = 0):
+        return tuple(offset+i for i in np.unravel_index(np.argmax(g), g.shape))
+
+    # part 1
+    y, x = ndim_argmax(windowed_sums[3], offset = 1)
+    print('{},{}'.format(y, x))
+
+    # part 2
+    s, g = sorted(windowed_sums.items(), key = lambda x : np.max(x[1]))[-1]
+    y, x = ndim_argmax(g, offset = 1)
+    print('{},{},{}'.format(y,x,s))
 
 if __name__ == '__main__':
     puzzle_input = 9221
-    part_1(puzzle_input)
-    part_2(puzzle_input)
+    main(puzzle_input)
