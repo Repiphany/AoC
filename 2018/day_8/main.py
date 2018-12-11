@@ -11,6 +11,14 @@ class Node:
         return sum(self.metadata) + sum(child.checksum() for child in
                 self.children)
 
+    def value(self):
+        if not self.children:
+            return sum(self.metadata)
+        else:
+            return sum(self.children[i - 1].value()
+                    for i in self.metadata
+                    if i and i-1 < self.n_children)
+
 if __name__ == '__main__':
     with open('input', 'r') as f:
         data = [int(i) for i in f.read().split(' ')][::-1]
@@ -18,4 +26,7 @@ if __name__ == '__main__':
 
     # part 1
     print(root.checksum())
+
+    # part 2
+    print(root.value())
 
