@@ -11,7 +11,11 @@ class Pots:
         self.rules = set(rules)
         self.generation = 0
 
-    def next(self):
+    def next(self, n = None):
+        if n is not None:
+            for _ in range(n):
+                self.next()
+            return
         children = set()
         for i in set(itertools.chain(*(range(j - 2, j + 3) for j in self.state))):
             rule = ''.join(self.get_plant(k) for k in range(i - 2, i + 3))
@@ -20,11 +24,25 @@ class Pots:
         self.state = children
         self.generation += 1
 
+    def stabilize(self):
+        s = self.string()[0]
+        while True:
+            self.next()
+            s_n = self.string()[0]
+            if s == s_n:
+                break
+            s = s_n
+
     def get_plant(self, i):
         return '#' if i in self.state else '.'
 
     def pot_sum(self):
         return sum(self.state)
+
+    def string(self):
+        s = ''.join(self.get_plant(i)
+                for i in range(min(self.state), max(self.state) + 1))
+        return s, min(self.state)
 
 if __name__ == '__main__':
     with open('input', 'r') as f:
@@ -37,23 +55,15 @@ if __name__ == '__main__':
             if out == '#':
                 rules.append(rule)
     pots = Pots(initial, rules)
-    for _ in range(20):
-        pots.next()
+
+    # part 1
+
+    pots.next(20)
     print(pots.pot_sum())
 
     # part 2
-    # wait for plant population to stabilize
 
-    population = []
-    for _ in range(5):
-        pots.next()
-        population.append(len(pots.state))
-
-    while True:
-        if len(set(population[-5:])) == 1:
-            break
-        pots.next()
-        population.append(len(pots.state))
+    pots.stabilize()
 
     y1 = pots.pot_sum()
     pots.next()
