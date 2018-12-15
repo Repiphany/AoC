@@ -1,150 +1,148 @@
 #!/usr/bin/env python3
 
-import sys
-import logging
-
 class Cavern:
-    def __init__(self, fd, elf_attack = 3):
-        self.units = []
-        self.floor = {}
-        for i, line in enumerate(fd):
-            for j, c in enumerate(line.rstrip('\n')):
-                self.floor[(i, j)] = 0 if c == '#' else 1
+    def __init__(self, mapstring):
+        self.mapstring = mapstring
+        self.initialize(mapstring)
+        
+    def initialize(self, mapstring, elf_attack = 3):
+        self.walls = set()
+        self.units = {}
+        self.elf_initial = 0
+        for y, line in enumerate(mapstring.split('\n')):
+            for x, c in enumerate(line):
+                if c == '#':
+                    self.walls.add((y, x))
                 if c == 'E':
-                    self.units.append(Unit(i, j, c, self, attack = elf_attack))
+                    self.units[(y, x)] = Unit(y, x, c, self, elf_attack)
+                    self.elf_initial += 1
                 if c == 'G':
-                    self.units.append(Unit(i, j, c, self, attack = 3))
-        self.height, self.width = i + 1, j + 1
+                    self.units[(y, x)] = Unit(y, x, c, self)
+        self.height, self.width = y + 1, x + 1
         self.round = 0
 
-    def remaining(self, c):
-        return [u for u in self.units if u.c == c and u.hp > 0]
+    def neighbours(self, position):
+        y, x = position
+        direct = set([(y - 1, x), (y, x - 1), (y, x + 1), (y + 1, x)])
+        return sorted(direct - self.walls)
 
-    def is_occupied(self, position):
-        occupied = [u for u in self.units if position == u.position]
-        if occupied:
-            return occupied[0]
-        return None
+    def remaining(self, race):
+        return [u for u in self.units.values() if u.race == race]
 
-    def step(self):
-        end_early = False
-        for unit in sorted(self.units, key = lambda x : x.position):
-            e = unit.do_action()
-            if e:
-                end_early = True
-        for unit in self.units:
-            if unit.hp <= 0:
-                self.units.remove(unit)
-        if end_early:
-            return
-        self.round += 1
+    def path(self, start, targets):
+        visited = {n:(n,) for n in self.neighbours(start) if n not in self.units}
+        depth = 1
+        def current_depth():
+            return [k for k, v in visited.items() if len(v) == depth]
+        while True:
+            reached = set(visited.keys()) & targets
+            if reached:
+                return sorted([visited[k] for k in reached])[0]
+            for position in current_depth():
+                for n_position in self.neighbours(position):
+                    if n_position not in self.units and n_position not in visited:
+                        visited[n_position] = visited[position] + (n_position,)
+            depth += 1
+            if not current_depth():
+                return None
+
+    def run(self):
+        while True:
+            for unit in sorted(self.units.values(), key = lambda x: x.position):
+                unit.do_action()
+            if not self.remaining('E') or not self.remaining('G'):
+                return
+            self.round += 1
+
+    def run_elf_deathless(self):
+        while True:
+            for unit in sorted(self.units.values(), key = lambda x: x.position):
+                unit.do_action()
+            if len(self.remaining('E')) < self.elf_initial:
+                return False
+            if not self.remaining('G'):
+                return True
+            self.round += 1
+
+    def outcome(self):
+        remaining_hp = sum(u.hp for u in self.units.values())
+        return remaining_hp, self.round, remaining_hp*self.round
 
 class Unit:
-    def __init__(self, i, j, c, cavern, attack = 3):
-        self.i = i
-        self.j = j
-        self.c = c
+    def __init__(self, y, x, race, cavern, attack = 3):
+        self.y = y
+        self.x = x
+        self.race = race
+        self.enemy_race = {'E':'G', 'G':'E'}[race]
         self.cavern = cavern
-        self.hp = 200
         self.attack = attack
+        self.hp = 200
 
     @property
     def position(self):
-        return (self.i, self.j)
+        return (self.y, self.x)
+
+    def move(self, new_position):
+        del self.cavern.units[self.position]
+        self.y, self.x = new_position
+        self.cavern.units[new_position] = self
 
     @property
     def neighbours(self):
-        return sorted(((self.i-1, self.j), (self.i, self.j+1),
-                (self.i+1, self.j), (self.i, self.j-1)))
+        return self.cavern.neighbours(self.position)
 
-    def targets(self):
-        e = {'E':'G', 'G':'E'}[self.c]
-        enemies = self.cavern.remaining(e)
-        t = []
-        for unit in enemies:
-            if unit.position in self.neighbours:
-                t.append(unit)
-        return sorted(t, key = lambda x : x.position)
+    def neighbouring_enemies(self):
+        enemies = []
+        for n in self.neighbours:
+            try:
+                if self.cavern.units[n].race == self.enemy_race:
+                    enemies.append(self.cavern.units[n])
+            except KeyError:
+                pass
+        return sorted(enemies, key = lambda x: x.hp)
 
     def do_action(self):
         if self.hp <= 0:
             return
-        e = {'E':'G', 'G':'E'}[self.c]
-        enemies = self.cavern.remaining(e)
-        if not enemies:
-            return True
 
-        for t in sorted(self.targets(), key = lambda x : x.hp):
-            t.hp -= self.attack
-            if t.hp <= 0:
-                self.cavern.units.remove(t)
+        if self.neighbouring_enemies():
+            self.fight(self.neighbouring_enemies()[0])
             return
 
-        adjacent = set()
-        for enemy in enemies:
-            for n in enemy.neighbours:
-                if self.cavern.floor[n] and not self.cavern.is_occupied(n):
-                    adjacent.add(n)
-
-        if not adjacent:
+        enemy_adjacent = set()
+        for enemy in self.cavern.remaining(self.enemy_race):
+            enemy_adjacent.update([p
+                for p in enemy.neighbours if p not in self.cavern.units])
+        if not enemy_adjacent:
             return
-
-        def neighbours(i, j):
-            return sorted([(i, j + 1), (i, j - 1), (i + 1, j), (i - 1, j)])
-
-        def search():
-            visited = {n:(n,) for n in sorted(self.neighbours) if self.cavern.floor[n]
-                    and not self.cavern.is_occupied(n)}
-            depth = 1
-            while True:
-                l = set(visited.keys()) & adjacent
-                if l:
-                    return sorted([visited[k] for k in l])[0]
-                for s in [k for k, v in visited.items() if len(v) == depth]:
-                    for sn in sorted(neighbours(*s)):
-                        if self.cavern.floor[sn] and not self.cavern.is_occupied(sn):
-                            if sn not in visited:
-                                visited[sn] = visited[s] + (sn,)
-                depth += 1
-                if not [k for k, v in visited.items() if len(v) == depth]:
-                    return None
-
-        path = search()
+        path = self.cavern.path(self.position, enemy_adjacent)
         if path is None:
             return
-        self.i, self.j = path[0]
+        self.move(path[0])
 
-        for t in sorted(self.targets(), key = lambda x : x.hp):
-            t.hp -= self.attack
-            if t.hp <= 0:
-                self.cavern.units.remove(t)
+        if self.neighbouring_enemies():
+            self.fight(self.neighbouring_enemies()[0])
             return
+
+    def fight(self, enemy):
+        enemy.hp -= self.attack
+        if enemy.hp <= 0:
+            del self.cavern.units[enemy.position]
 
 if __name__ == '__main__':
     with open('input', 'r') as f:
-        cavern = Cavern(f)
-    while True:
-        cavern.step()
-        if not cavern.remaining('G') or not cavern.remaining('E'):
-            remaining_hp = sum(u.hp for u in cavern.units)
-            print(remaining_hp*cavern.round)
-            break
+        cavern = Cavern(f.read())
+    cavern.run()
 
+    # part 1
+    print(cavern.outcome()[2])
+    
     # part 2
     elf_attack = 3
-    end = False
-    while not end:
+    while True:
         elf_attack += 1
-        with open('input', 'r') as f:
-            cavern = Cavern(f, elf_attack)
-        starting_elves = len(cavern.remaining('E'))
-        while True:
-            cavern.step()
-            if not len(cavern.remaining('G')):
-                remaining_hp = sum(u.hp for u in cavern.units)
-                print(remaining_hp*cavern.round)
-                end = True
-                break
-            if len(cavern.remaining('E')) < starting_elves:
-                break
+        cavern.initialize(cavern.mapstring, elf_attack)
+        if cavern.run_elf_deathless():
+            print(cavern.outcome()[2])
+            break
 
