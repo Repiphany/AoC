@@ -12,7 +12,7 @@ for line in log:
     else:
         sleep_end = int(re.findall(r'\d+', timestamp)[-1])
         tracker[active_guard].update(range(sleep_start, sleep_end))
-most_asleep, minutes = sorted(tracker.items(), key = lambda x : sum(x[1].values()))[-1]
+most_asleep, minutes = max(tracker.items(), key = lambda x : sum(x[1].values()))
 print(minutes.most_common()[0][0] * most_asleep)
-most_asleep, minutes = sorted(tracker.items(), key = lambda x : max(x[1].values()))[-1]
+most_asleep, minutes = max(tracker.items(), key = lambda x : max(x[1].values()))
 print(minutes.most_common()[0][0] * most_asleep)
