@@ -3,84 +3,6 @@
 import re
 import collections
 
-class Reservoir:
-    def __init__(self, clay):
-        self.clay = clay
-        self.y_max = max(y for (y, x) in clay)
-        self.y_min = min(y for (y, x) in clay)
-        source = (0, 500)
-        self.filled = set()
-        self.flow_down = [source]
-        self.line = None
-        self.to_fill = []
-
-    def is_filled(self, position):
-        return position in self.clay or position in self.filled
-
-    def flowfill(self):
-        while self.flow_down:
-            y, x = self.flow_down.pop()
-            self.to_fill.append((y, x))
-            while True:
-                y += 1
-                if (y, x) in self.clay:
-                    break
-                self.filled.add((y, x))
-                if y == self.y_max:
-                    return True
-                self.to_fill.append((y, x))
-        if not self.to_fill:
-            return False
-        y, x = self.to_fill.pop()
-        left_overflow = False
-        right_overflow = False
-        fill = True
-        xl = x
-        while True:
-            xl -= 1
-            if (y, xl) in self.clay:
-                xl += 1
-                break
-            if not self.is_filled((y + 1, xl)):
-                if (y + 1, xl + 1) in self.clay:
-                    left_overflow = True
-                    break
-                else:
-                    fill = False
-                    break
-        xr = x
-        while True:
-            xr += 1
-            if (y, xr) in self.clay:
-                xr -= 1
-                break
-            if not self.is_filled((y + 1, xr)):
-                if (y + 1, xr - 1) in self.clay:
-                    right_overflow = True
-                    break
-                else:
-                    fill = False
-                    break
-        if fill:
-            for xi in range(xl, xr + 1):
-                self.filled.add((y, xi))
-            if left_overflow:
-                self.flow_down.append((y, xl))
-            if right_overflow:
-                self.flow_down.append((y, xr))
-        return True
-
-    def drain(self):
-        while True:
-            d = False
-            for (y, x) in self.filled.copy():
-                n = [(y+1,x),(y,x+1),(y,x-1)]
-                if not all(self.is_filled(ni) for ni in n):
-                    d = True
-                    self.filled.remove((y, x))
-            if not d:
-                return
-
 if __name__ == '__main__':
     clay = set()
     with open('input', 'r') as f:
@@ -94,12 +16,78 @@ if __name__ == '__main__':
                 y = a
                 for x in range(b, c + 1):
                     clay.add((y, x))
-    reservoir = Reservoir(clay)
+    y_max = max(y for (y, x) in clay)
+    y_min = min(y for (y, x) in clay)
+    source = (0, 500)
+    filled = set()
+    flow_down = [source]
+    fill_horizontal = []
 
-    while reservoir.flowfill():
+    def is_filled(pos):
+        return (pos in clay) or (pos in filled)
+
+    def flowfill():
+        while flow_down:
+            y, x = pos = flow_down.pop()
+            fill_horizontal.append(pos)
+            while True:
+                y += 1
+                if (y, x) in clay:
+                    break
+                filled.add((y, x))
+                if y == y_max:
+                    return True
+                fill_horizontal.append((y, x))
+        if not fill_horizontal:
+            return False
+        y, x = pos = fill_horizontal.pop()
+        left_overflow = right_overflow = False
+        do_fill = True
+        xl = x
+        while True:
+            xl -= 1
+            if (y, xl) in clay:
+                xl += 1
+                break
+            if not is_filled((y+1, xl)):
+                if (y + 1, xl + 1) in clay:
+                    left_overflow = True
+                else:
+                    do_fill = False
+                break
+        xr = x
+        while True:
+            xr += 1
+            if (y, xr) in clay:
+                xr -= 1
+                break
+            if not is_filled((y + 1, xr)):
+                if (y + 1, xr - 1) in clay:
+                    right_overflow = True
+                else:
+                    do_fill = False
+                break
+        if do_fill:
+            for xi in range(xl, xr + 1):
+                filled.add((y, xi))
+            if left_overflow:
+                flow_down.append((y, xl))
+            if right_overflow:
+                flow_down.append((y, xr))
+        return True
+
+    # part 1
+    while flowfill():
         pass
-    print(len([y for (y, x) in reservoir.filled if reservoir.y_min <= y <= reservoir.y_max]))
+    print(len([y for (y, x) in filled if y_min <= y <= y_max]))
 
-    reservoir.drain()
-    print(len([y for (y, x) in reservoir.filled if reservoir.y_min <= y <= reservoir.y_max]))
-
+    # part 2
+    while True:
+        changed = False
+        for (y, x) in filled.copy():
+            if not all(is_filled(n) for n in [(y+1,x),(y,x+1),(y,x-1)]):
+                filled.remove((y, x))
+                changed = True
+        if not changed:
+            break
+    print(len([y for (y, x) in filled if y_min <= y <= y_max]))
