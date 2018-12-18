@@ -68,6 +68,6 @@ if __name__ == '__main__':
     # cycle length
     c = len(seen) - seen.index(ls)
     N = 1000000000
-    ls_final = collections.Counter(seen[(N - seen.index(ls))%28 + seen.index(ls)])
+    ls_final = collections.Counter(seen[(N - seen.index(ls))%c + seen.index(ls)])
     print(ls_final['#']*ls_final['|'])
 
