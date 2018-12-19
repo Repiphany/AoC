@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
 
 import collections
-import sys
 
 def neighbours(y, x):
-    return [
-            (y-1, x-1),
-            (y-1, x),
-            (y-1, x+1),
-            (y, x+1),
-            (y+1, x+1),
-            (y+1, x),
-            (y+1, x-1),
-            (y, x-1),
-            ]
+    return [(y-1, x-1), (y-1, x), (y-1, x+1), (y, x+1),
+            (y+1, x+1), (y+1, x), (y+1, x-1), (y, x-1)]
 
 def change(lumber):
     next_lumber = {}
@@ -21,20 +12,11 @@ def change(lumber):
         adjacent = collections.Counter([lumber[(i, j)] for i, j in
             neighbours(*pos) if (i, j) in lumber])
         if v == '.':
-            if adjacent['|'] >= 3:
-                next_lumber[pos] = '|'
-            else:
-                next_lumber[pos] = '.'
+            next_lumber[pos] = '|' if adjacent['|'] >= 3 else '.'
         if v == '|':
-            if adjacent['#'] >= 3:
-                next_lumber[pos] = '#'
-            else:
-                next_lumber[pos] = '|'
+            next_lumber[pos] = '#' if adjacent['#'] >= 3 else '|'
         if v == '#':
-            if adjacent['#'] >= 1 and adjacent['|'] >= 1:
-                next_lumber[pos] = '#'
-            else:
-                next_lumber[pos] = '.'
+            next_lumber[pos] = '#' if adjacent['#']*adjacent['|'] else '.'
     lumber.update(next_lumber)
 
 if __name__ == '__main__':
@@ -46,11 +28,8 @@ if __name__ == '__main__':
     y_max = y + 1
     x_max = x + 1
     def lumber_str(lumber):
-        def ordered():
-            for y in range(y_max):
-                for x in range(x_max):
-                    yield lumber[(y, x)]
-        return ''.join(i for i in ordered())
+        return ''.join(lumber[(y, x)]
+                for y in range(y_max) for x in range(x_max))
     seen = [lumber_str(lumber)]
     for i in range(10):
         change(lumber)
@@ -65,9 +44,9 @@ if __name__ == '__main__':
         if ls in seen:
             break
         seen.append(ls)
-    # cycle length
-    c = len(seen) - seen.index(ls)
+    c_start = seen.index(ls)
+    c_length = len(seen) - seen.index(ls)
     N = 1000000000
-    ls_final = collections.Counter(seen[(N - seen.index(ls))%c + seen.index(ls)])
-    print(ls_final['#']*ls_final['|'])
+    ls_N = collections.Counter(seen[(N - c_start)%c_length + c_start])
+    print(ls_N['#']*ls_N['|'])
 
