@@ -5,22 +5,35 @@ import collections
 class Facility:
     def __init__(self):
         self.min_steps = collections.defaultdict(lambda : float('inf'))
+        self.min_path = collections.defaultdict(list)
 
-    def step(self, directions):
+    def step(self, directions, save_path = False):
         branches = {}
         branch = n = x = y = 0
         branched = False
+        path = [(0, 0)]
         while True:
             if branched:
-                x, y, n = branches[branch]
+                if save_path:
+                    x, y, n, path = branches[branch]
+                else:
+                    x, y, n = branches[branch]
                 branched = False
+            if save_path:
+                if path[-1] != (x, y):
+                    path.append((x, y))
+                if n < self.min_steps[(x, y)]:
+                    self.min_path[(x, y)] = path[:]
             n = self.min_steps[(x, y)] = min(self.min_steps[(x, y)], n)
             c = next(directions)
             if c == '$':
                 return
             if c == '(':
                 branch += 1
-                branches[branch] = (x, y, n)
+                if save_path:
+                    branches[branch] = (x, y, n, path[:])
+                else:
+                    branches[branch] = (x, y, n)
             if c == ')':
                 branch -= 1
             if c == '|':
