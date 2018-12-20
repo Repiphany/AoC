@@ -18,6 +18,6 @@ while 1:
  x+={'E':1,'W':-1}.get(c,0)
  n+=1
 p=print
-i=m.items()
-p(max(i,key=lambda x:x[1])[1])
-p(len([k for k,v in i if v>999]))
+v=m.values()
+p(max(v))
+p(sum([x>999 for x in v]))
