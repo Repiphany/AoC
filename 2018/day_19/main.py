@@ -64,72 +64,57 @@ class Device:
 
     def addr(self, a, b, c):
         self.registers[c] = self.registers[a] + self.registers[b]
-        self.ip += 1
 
     def addi(self, a, b, c):
         self.registers[c] = self.registers[a] + b
-        self.ip += 1
 
     def mulr(self, a, b, c):
         self.registers[c] = self.registers[a] * self.registers[b]
-        self.ip += 1
 
     def muli(self, a, b, c):
         self.registers[c] = self.registers[a] * b
-        self.ip += 1
 
     def banr(self, a, b, c):
         self.registers[c] = self.registers[a] & self.registers[b]
-        self.ip += 1
 
     def bani(self, a, b, c):
         self.registers[c] = self.registers[a] & b
-        self.ip += 1
 
     def borr(self, a, b, c):
         self.registers[c] = self.registers[a] | self.registers[b]
-        self.ip += 1
 
     def bori(self, a, b, c):
         self.registers[c] = self.registers[a] | b
-        self.ip += 1
 
     def setr(self, a, b, c):
         self.registers[c] = self.registers[a]
-        self.ip += 1
 
     def seti(self, a, b, c):
         self.registers[c] = a
-        self.ip += 1
 
     def gtir(self, a, b, c):
         self.registers[c] = 1 if (a > self.registers[b]) else 0
-        self.ip += 1
 
     def gtri(self, a, b, c):
         self.registers[c] = 1 if (self.registers[a] > b) else 0
-        self.ip += 1
 
     def gtrr(self, a, b, c):
         self.registers[c] = 1 if (self.registers[a] > self.registers[b]) else 0
-        self.ip += 1
 
     def eqir(self, a, b, c):
         self.registers[c] = 1 if (a == self.registers[b]) else 0
-        self.ip += 1
 
     def eqri(self, a, b, c):
         self.registers[c] = 1 if (self.registers[a] == b) else 0
-        self.ip += 1
 
     def eqrr(self, a, b, c):
         self.registers[c] = 1 if (self.registers[a] == self.registers[b]) else 0
-        self.ip += 1
 
     def run_instruction(self, program):
         try:
             opcode, a, b, c = program[self.ip]
             getattr(self, opcode)(a, b, c)
+            self.ip += 1
             return True
         except IndexError:
             return False
