@@ -67,10 +67,12 @@ if __name__ == '__main__':
         change_gear(x, y)
         
     search_buffer = 20 # might be larger to ensure shortest path found
-    for y in range(target[1] + search_buffer):
-        for x in range(target[0] + search_buffer):
-            minimize(x, y)
-            [minimize(xn, yn) for xn, yn in neighbours(x, y)]
-    
+    passes = 2
+    for _ in range(passes):
+        for y in range(target[1] + search_buffer):
+            for x in range(target[0] + search_buffer):
+                minimize(x, y)
+                [minimize(xn, yn) for xn, yn in neighbours(x, y)]
+        
     print(shortest[target]['torch'])
 
