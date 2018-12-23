@@ -86,8 +86,19 @@ if __name__ == '__main__':
         changed = False
         for (y, x) in filled.copy():
             if not all(is_filled(n) for n in [(y+1,x),(y,x+1),(y,x-1)]):
-                filled.remove((y, x))
-                changed = True
+                try:
+                    filled.remove((y, x))
+                    xl = x - 1
+                    xr = x + 1
+                    while (y, xl) in filled:
+                        filled.remove((y, xl))
+                        xl -= 1
+                    while (y, xr) in filled:
+                        filled.remove((y, xr))
+                        xl += 1
+                    changed = True
+                except:
+                    continue
         if not changed:
             break
     print(len([y for (y, x) in filled if y_min <= y <= y_max]))
