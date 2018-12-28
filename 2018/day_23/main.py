@@ -19,7 +19,9 @@ if __name__ == '__main__':
     pos = positions[idx]
 
     best = []
-    def in_range(x, r = None):
+    def in_range(x, r = None, cache = {}):
+        if tuple(x) in cache:
+            return cache[tuple(x)]
         if r is None:
             r = radii
         dist = np.sum(np.abs(positions - x), axis = 1)
@@ -28,6 +30,7 @@ if __name__ == '__main__':
             best.append((x, near))
         if near > best[-1][1]:
             best.append((x, near))
+        cache[tuple(x)] = near
         return near
     print(int(in_range(pos, r)))
     
@@ -57,13 +60,16 @@ if __name__ == '__main__':
             in_range(x)
         return x
     
-    for r in [100000,10000,1000,100,10,1]:
+    # initial coarse search
+    for r in [100000,1000,10]:
         neighbour_search(best[-1][0], r = r)
 
-    def stochastic_descent(n_iter = 30000, sigma = np.array([10,10,10])):
-        for _ in range(n_iter):
-            in_range(np.rint(best[-1][0] + np.random.normal(size = (3,))*sigma))
+    # ignore bots that are too far away from current optimal point to make a
+    # difference
+    idx = (np.sum(np.abs(positions - best[-1][0]), axis = 1) - radii) < 1000
+    positions = positions[idx]
+    radii = radii[idx]
 
-    stochastic_descent()
-    # print(best[-1][0], int(best[-1][1]))
+    neighbour_search(best[-1][0], r = 1)
+
     print(int(np.sum(best[-1][0])))
