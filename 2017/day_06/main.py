@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import itertools
 
 def redistribute(banks):
     v = max(banks)
@@ -16,19 +17,15 @@ if __name__ == '__main__':
     with open(args.FILE, 'r') as f:
         banks = [int(i) for i in f.read().split('\t')]
     seen = [tuple(banks)]
-    n = 0
-    while True:
+    for n in itertools.count(start = 1):
         redistribute(banks)
-        n += 1
         if tuple(banks) in seen:
             break
         seen.append(tuple(banks))
     print(n)
-    c = 0
     c_i = tuple(banks)
-    while True:
+    for c in itertools.count(start = 1):
         redistribute(banks)
-        c += 1
         if tuple(banks) == c_i:
             break
     print(c)
