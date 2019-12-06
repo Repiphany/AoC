@@ -42,8 +42,8 @@ if __name__ == '__main__':
     com = orbits['COM']
     san = orbits['SAN']
     you = orbits['YOU']
-    to_san = list(com.map_to(san))[0]
-    to_you = list(com.map_to(you))[0]
+    to_san = next(com.map_to(san))
+    to_you = next(com.map_to(you))
     common = set.intersection(set(to_san), set(to_you))
     root = max(common, key = to_san.index)
     print(len(next(root.map_to(san))) + len(next(root.map_to(you))))
