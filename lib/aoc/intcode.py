@@ -5,8 +5,10 @@ class Intcode:
         self.initial = prog
         self.prog = [int(i) for i in prog.split(',')]
         self.position = 0
-        self.value = None
+        self.value = []
         self.debug = False
+        self.return_output = False
+        self.halted = False
 
     @property
     def state(self):
@@ -21,7 +23,9 @@ class Intcode:
     def initialize(self, value = None):
         self.prog = [int(i) for i in self.initial.split(',')]
         self.position = 0
-        self.value = value
+        self.halted = False
+        self.value = []
+        self.value.append(value)
 
     def add(self, modes = (0, 0, 0)):
         a, b, c = self.prog[self.position + 1: self.position + 4]
@@ -42,9 +46,12 @@ class Intcode:
     def save(self, modes = (0, 0, 0)):
         a = self.prog[self.position + 1]
         mc, mb, ma = modes
-        self.prog[a] = self.value
+        try:
+            self.prog[a] = self.value.pop(0)
+        except AttributeError:
+            self.prog[a] = self.value
         if self.debug:
-            print('save', a, self.value, modes)
+            print('save', a, self.prog[a], modes)
         self.position += 2
 
     def output(self, modes = (0, 0, 0)):
@@ -52,7 +59,11 @@ class Intcode:
         mc, mb, ma = modes
         if self.debug:
             print('output', a, modes)
-        print(self.get(a, ma))
+        if self.return_output:
+            self.position += 2
+            return self.get(a, ma)
+        else:
+            print(self.get(a, ma))
         self.position += 2
 
     def jump_if_true(self, modes = (0,0,0)):
@@ -108,9 +119,12 @@ class Intcode:
         return op, modes
 
     def run(self):
-        while True:
+        while not self.halted:
             op, modes = self.opcode()
-            if not op:
+            if op is None:
+                self.halted = True
                 return
-            op(modes)
+            o = op(modes)
+            if o is not None:
+                return o
 
