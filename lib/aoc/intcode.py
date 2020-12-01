@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
+from collections import defaultdict
+
 class Intcode:
-    def __init__(self, prog):
+    def __init__(self, prog, value = None):
         self.initial = prog
-        self.prog = [int(i) for i in prog.split(',')]
-        self.position = 0
-        self.value = []
+        self.initialize(value)
         self.debug = False
         self.return_output = False
         self.halted = False
@@ -19,33 +19,49 @@ class Intcode:
             return self.prog[a]
         elif mode == 1:
             return a
+        elif mode == 2:
+            return self.prog[self.relative_base + a]
+
+    def get_params(self, n):
+        for i in range(1, n + 1):
+            yield self.prog[self.position + i]
 
     def initialize(self, value = None):
-        self.prog = [int(i) for i in self.initial.split(',')]
+        self.prog = defaultdict(int)
+        for idx, i in enumerate(self.initial.split(',')):
+            self.prog[idx] = int(i)
         self.position = 0
+        self.relative_base = 0
         self.halted = False
         self.value = []
-        self.value.append(value)
+        if value is not None:
+            self.value.append(value)
 
     def add(self, modes = (0, 0, 0)):
-        a, b, c = self.prog[self.position + 1: self.position + 4]
+        a, b, c = self.get_params(3)
         mc, mb, ma = modes
+        if mc == 2:
+            c = self.relative_base + c
         if self.debug:
             print('add', a, b, c, ma, mb, mc)
         self.prog[c] = self.get(a, ma) + self.get(b, mb)
         self.position += 4
 
     def multiply(self, modes = (0, 0, 0)):
-        a, b, c = self.prog[self.position + 1: self.position + 4]
+        a, b, c = self.get_params(3)
         mc, mb, ma = modes
+        if mc == 2:
+            c = self.relative_base + c
         if self.debug:
             print('multiply', a, b, c, ma, mb, mc)
         self.prog[c] = self.get(a, ma) * self.get(b, mb)
         self.position += 4
 
     def save(self, modes = (0, 0, 0)):
-        a = self.prog[self.position + 1]
+        a, = self.get_params(1)
         mc, mb, ma = modes
+        if ma == 2:
+            a = self.relative_base + a
         try:
             self.prog[a] = self.value.pop(0)
         except AttributeError:
@@ -55,7 +71,7 @@ class Intcode:
         self.position += 2
 
     def output(self, modes = (0, 0, 0)):
-        a = self.prog[self.position + 1]
+        a, = self.get_params(1)
         mc, mb, ma = modes
         if self.debug:
             print('output', a, modes)
@@ -67,7 +83,7 @@ class Intcode:
         self.position += 2
 
     def jump_if_true(self, modes = (0,0,0)):
-        a, b = self.prog[self.position + 1: self.position + 3]
+        a, b = self.get_params(2)
         mc, mb, ma = modes
         if self.debug:
             print('jump_if_true', a, b, modes)
@@ -77,7 +93,7 @@ class Intcode:
             self.position += 3
 
     def jump_if_false(self, modes = (0,0,0)):
-        a, b = self.prog[self.position + 1: self.position + 3]
+        a, b = self.get_params(2)
         mc, mb, ma = modes
         if self.debug:
             print('jump_if_false', a, b, modes)
@@ -87,20 +103,32 @@ class Intcode:
             self.position += 3
 
     def less_than(self, modes = (0,0,0)):
-        a, b, c= self.prog[self.position + 1: self.position + 4]
+        a, b, c = self.get_params(3)
         mc, mb, ma = modes
+        if mc == 2:
+            c = self.relative_base + c
         if self.debug:
             print('less_than', a, b, c, modes)
         self.prog[c] = int(self.get(a, ma) < self.get(b, mb))
         self.position += 4
 
     def equals(self, modes = (0,0,0)):
-        a, b, c= self.prog[self.position + 1: self.position + 4]
+        a, b, c = self.get_params(3)
         mc, mb, ma = modes
+        if mc == 2:
+            c = self.relative_base + c
         if self.debug:
             print('equals', a, b, c, modes)
         self.prog[c] = int(self.get(a, ma) == self.get(b, mb))
         self.position += 4
+
+    def relative_base_offset(self, modes = (0,0,0)):
+        a, = self.get_params(1)
+        mc, mb, ma = modes
+        if self.debug:
+            print('relative_base_offset', a, modes)
+        self.relative_base += self.get(a, ma)
+        self.position += 2
 
     def opcode(self):
         inst = self.prog[self.position]
@@ -114,6 +142,7 @@ class Intcode:
                 6:self.jump_if_false,
                 7:self.less_than,
                 8:self.equals,
+                9:self.relative_base_offset,
                 99:None,
                 }[inst%100]
         return op, modes
