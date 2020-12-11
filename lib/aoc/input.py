@@ -18,4 +18,12 @@ def download_input(year, day, session):
 
 def get_input(year, day):
     with open(root / f'input/{year}/{day}', 'r') as f:
-        yield from f
+        yield from (line.strip() for line in f)
+
+def get_input_line(year, day):
+    with open(root / f'input/{year}/{day}', 'r') as f:
+        return f.read().strip()
+
+def get_input_chunks(year, day, delimiter = '\n'):
+    with open(root / f'input/{year}/{day}', 'r') as f:
+        yield from f.read().split(delimiter)
