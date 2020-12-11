@@ -2,6 +2,13 @@
 
 from collections import defaultdict
 
+class Popper:
+    def __init__(self, v):
+        self.v = v
+
+    def pop(self, *args, **kwargs):
+        return self.v
+
 class Intcode:
     def __init__(self, prog, value = None):
         self.initial = prog
@@ -9,6 +16,7 @@ class Intcode:
         self.debug = False
         self.return_output = False
         self.halted = False
+        self.manual_input = False
 
     @property
     def state(self):
@@ -37,6 +45,9 @@ class Intcode:
         if value is not None:
             self.value.append(value)
 
+    def repeating_value(self, v):
+        self.value = Popper(v)
+
     def add(self, modes = (0, 0, 0)):
         a, b, c = self.get_params(3)
         mc, mb, ma = modes
@@ -63,7 +74,10 @@ class Intcode:
         if ma == 2:
             a = self.relative_base + a
         try:
-            self.prog[a] = self.value.pop(0)
+            if self.manual_input:
+                self.prog[a] = int(input('Manual input: '))
+            else:
+                self.prog[a] = self.value.pop(0)
         except AttributeError:
             self.prog[a] = self.value
         if self.debug:
@@ -147,8 +161,8 @@ class Intcode:
                 }[inst%100]
         return op, modes
 
-    def run(self):
-        while not self.halted:
+    def run(self, force = False):
+        while force or not self.halted:
             op, modes = self.opcode()
             if op is None:
                 self.halted = True
