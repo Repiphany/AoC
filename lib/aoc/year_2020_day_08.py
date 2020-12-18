@@ -53,7 +53,6 @@ class Console:
             else:
                 continue
             if self.run():
-                print(f'Instruction {i} changed from {op}')
                 return self.accumulator
             else:
                 self.instructions[i] = (op, v)
